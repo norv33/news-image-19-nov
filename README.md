@@ -50,5 +50,9 @@ entry (navy-and-amber hand-drawn world map).
 
 `entry.png` (1024×1024, drawn with Python PIL and DejaVu fonts by
 `draw.py`, kept local) is the image. `main.ts` (Node 22, stdlib only)
-simply copies it to `$MAKEFUN_OUTPUT_DIR` (or `/output`) as
-`entry.png`. Running it twice produces byte-identical output.
+validates it first — the first 8 bytes must match the PNG signature
+and the file must be at most 1 MiB — then writes it atomically to
+`$MAKEFUN_OUTPUT_DIR` (or `/output`) as `entry.png`: the bytes go to
+a temporary file in the output directory, then rename over
+`entry.png`, so a failed run never leaves a truncated image behind.
+Running it twice produces byte-identical output.
