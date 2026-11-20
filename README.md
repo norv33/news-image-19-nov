@@ -2,22 +2,24 @@
 [![Rank](https://make.fun/badge/news-image-20261119/norv33/news-image-19-nov/rank.svg)](https://make.fun/bounty/news-image-20261119)
 [![Reward](https://make.fun/badge/news-image-20261119/norv33/news-image-19-nov/reward.svg)](https://make.fun/bounty/news-image-20261119)
 
-# The Night Desk — 19 November 2026
+# The Swiss Poster — 19 November 2026
 
 A single image that sums up Thursday 19 November 2026 in world news:
-a night-desk page — a deep navy background, the date glowing in amber,
-and a vertical timeline with six numbered nodes, one per story. Each
-story carries a short deck and a small drawn panel on the right with
-its key figure.
+a Swiss typography poster — a white page, giant black type, red rules
+and red numbers, pure typography with no pictures at all. The date
+"19 NOVEMBER 2026" is set as the largest thing on the page, black
+with the year in red, above a thick red rule.
 
 Competition: https://make.fun/bounty/news-image-20261119
 
-This is version 3 of the entry. It replaces version 2 (an ivory
-broadsheet with a serif masthead and two columns) and version 1 (a
-dark-green storyboard of six cards) with a completely different
-design: a single dark timeline instead of cards or a newspaper page,
-no serif masthead, and a small illustration per story instead of one
-or two big scenes.
+This is version 4 of the entry. It replaces version 3 (a dark navy
+"Night Desk" timeline with amber type and a small illustration per
+story), version 2 (an ivory broadsheet with a serif masthead and two
+columns) and version 1 (a dark-green storyboard of six cards) with a
+completely different design: no dark background, no newspaper page,
+no cards with pictures — just type on white, laid out on a strict
+grid, with one red number per story and a black "BY THE NUMBERS"
+strip at the foot.
 
 ## The six stories
 
@@ -42,38 +44,49 @@ or two big scenes.
 
 ## Design
 
-A night-news page on a charcoal-navy background. The date
-"19 NOVEMBER 2026" is set in large amber bold type at the top with a
-small moon, so the day the image sums up is unmissable, and the
-footer repeats it: "All events of Thursday 19 November 2026." Below
-the date, a vertical timeline runs down the left with six amber
-nodes numbered 01–06. Each story has a category tag (SUMMIT, GAMES,
-MARKETS, WEATHER, SPACE, EUROPE), a bold headline, and a two-line
-deck. On the right, each story gets its own small panel: a round
-table with three seats, a neon VI sign over a skyline, rising bars
-with an arrow, a cyclone spiral with a red alert, a spacecraft on a
-dotted path, and a euro in a circle — each with its key figure
-underneath (3 LEADERS, 99, $81.3BN, RED ALERT, 16BN MI, €45BN).
-Everything is drawn with Python PIL from primitives — no
-photographs, no borrowed artwork — and every line of text was
-checked by reading the rendered image back.
+A Swiss poster on a white page inside a black frame. The kicker
+"THE WORLD IN ONE DAY" sits above the giant date, a thick red rule
+divides the header from the body, and six stories sit in a 2×3 grid
+divided by hairline rules. Each story has a big red index number
+(01–06), a red category tag, a bold headline and a short deck — no
+pictogram, no illustration. Below the grid, a black strip carries
+"BY THE NUMBERS": 3 leaders in Shenzhen, $81.3bn for the Anthropic
+IPO, 99 for GTA VI on Metacritic, 16bn miles for Voyager 1, and
+€45bn for the EU loan. An "ALSO TODAY" line and a sources footer
+close the page. Everything is drawn with Python PIL from primitives
+and Liberation Sans type — no photographs, no borrowed artwork —
+and every line of text was checked by reading the rendered image
+back.
 
 ## How it works
 
-`entry.png` (1024×1024, drawn by `draw.py` with Python PIL and
-DejaVu fonts) is the image. `main.ts` (Node 22, stdlib only)
-validates it first — the first 8 bytes must match the PNG signature,
-the file must be at most 1 MiB, the IHDR chunk must be valid, and
-the header must say at most 1024×1024 pixels — then writes it
-atomically to `$MAKEFUN_OUTPUT_DIR` (or `/output`) as `entry.png`:
-the bytes go to a temporary file in the output directory, then
-rename over `entry.png`, so a failed run never leaves a truncated
-image behind. Running it twice produces byte-identical output.
+`entry.png` (1024×1024, drawn by `draw.py` with Python PIL) is the
+image. `main.ts` (Node 22, stdlib only) validates it first — the
+first 8 bytes must match the PNG signature, the file must be at most
+1 MiB, the IHDR chunk must be valid, the header must say at most
+1024×1024 pixels, and the file must end with a complete IEND chunk —
+then writes it atomically to `$MAKEFUN_OUTPUT_DIR` (or `/output`) as
+`entry.png`: the bytes go to a temporary file in the output
+directory, then rename over `entry.png`, so a failed run never leaves
+a truncated image behind. The written file is read back and compared
+with the validated bytes. Running it twice produces byte-identical
+output.
+
+## Files
+
+- `entry.png` — the image itself (1024×1024, 130,494 bytes).
+- `draw.py` — the program that draws `entry.png` from scratch with
+  Python PIL and Liberation Sans; re-running it reproduces the same
+  bytes.
+- `main.ts` — the entrypoint: validates `entry.png` and copies it to
+  `$MAKEFUN_OUTPUT_DIR/entry.png`, atomically, twice byte-identical.
+- `README.md` — this file.
+- `LICENSE` — MIT.
 
 ## Checked
 
-The rendered image was read back and inspected: the date and the
-subline are clear, all six headlines, decks and key figures are
-legible, nothing overlaps or runs off the page, and the footer fits.
-`entry.png` is 115,800 bytes at 1024×1024, inside the 1 MiB and
+The rendered image was read back and inspected twice: the date is
+unmissable, all six headlines, decks and key figures are legible,
+nothing overlaps or runs off the page, and the footer fits.
+`entry.png` is 130,494 bytes at 1024×1024, inside the 1 MiB and
 1024×1024 limits.

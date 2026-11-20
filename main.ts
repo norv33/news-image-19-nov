@@ -1,59 +1,56 @@
-// News-image entry, version 3 (Node 22, standard library only).
-//
-// The image is the entry.png sitting next to this file. This program
-// checks it and copies it to /output/entry.png. The checks are the
-// ones the gate applies: the first 8 bytes must be the PNG signature,
-// the file must be no bigger than 1 MiB, and the IHDR header must say
-// at most 1024 by 1024 pixels. A file that fails any of them is
-// refused loudly and nothing is written, so a bad run can never leave
-// a broken image behind.
-//
-// The write is atomic: bytes land in a temporary file inside the
-// output directory first and are then renamed over entry.png. The
-// output directory is created when it is missing.
-//
-// Outside the grader, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// main.ts — news-image-20261119 v4 (Swiss typography poster).
+// Node 22, standard library only. Copies entry.png from this repository
+// to $MAKEFUN_OUTPUT_DIR (or /output) as entry.png, after validating it
+// is a real PNG within the competition's size limits. The write is
+// atomic: bytes go to a temp file in the output directory, then rename
+// over entry.png, so a failed run never leaves a truncated image.
 
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
 const MAX_BYTES = 1048576; // 1 MiB
-const MAX_SIDE = 1024;
+const MAX_DIMENSION = 1024;
 
-const source = new URL('./entry.png', import.meta.url);
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-const target = join(outDir, 'entry.png');
+const source = new URL("./entry.png", import.meta.url);
+const data = readFileSync(source);
 
-if (!existsSync(source)) {
-  throw new Error('entry.png is missing next to main.ts');
+if (data.length > MAX_BYTES) {
+  throw new Error(
+    `entry.png is ${data.length} bytes, over the 1 MiB limit`,
+  );
+}
+if (!data.subarray(0, 8).equals(PNG_SIGNATURE)) {
+  throw new Error("entry.png does not start with the PNG signature");
+}
+if (data.toString("ascii", 12, 16) !== "IHDR") {
+  throw new Error("entry.png has no IHDR chunk where one is expected");
+}
+const width = data.readUInt32BE(16);
+const height = data.readUInt32BE(20);
+if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+  throw new Error(
+    `entry.png is ${width}x${height}, over the 1024x1024 limit`,
+  );
+}
+// A whole PNG ends with its IEND chunk: 4-byte length 0, the letters
+// IEND, and its CRC. Refuse a file cut short before it.
+const IEND_TAIL = Buffer.from([
+  0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+]);
+if (!data.subarray(data.length - 12).equals(IEND_TAIL)) {
+  throw new Error("entry.png does not end with a complete IEND chunk");
 }
 
-const { size } = statSync(source);
-if (size > MAX_BYTES) {
-  throw new Error(`entry.png is ${size} bytes, over the 1 MiB limit (${MAX_BYTES} bytes)`);
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+mkdirSync(outDir, { recursive: true });
+const tmpPath = join(outDir, `.entry.png.${process.pid}.tmp`);
+writeFileSync(tmpPath, data);
+const outPath = join(outDir, "entry.png");
+renameSync(tmpPath, outPath);
+// Read the written file back: it must be exactly what was validated.
+if (!readFileSync(outPath).equals(data)) {
+  throw new Error("written entry.png does not match the validated bytes");
 }
-
-const bytes = readFileSync(source);
-if (!bytes.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC)) {
-  throw new Error('entry.png is not a PNG: its first bytes do not match the PNG signature');
-}
-
-const width = bytes.readUInt32BE(16);
-const height = bytes.readUInt32BE(20);
-if (bytes.subarray(12, 16).toString('latin1') !== 'IHDR' || bytes.readUInt32BE(8) !== 13) {
-  throw new Error('entry.png has no valid IHDR chunk, so its size cannot be trusted');
-}
-if (width > MAX_SIDE || height > MAX_SIDE) {
-  throw new Error(`entry.png is ${width}x${height}, over the ${MAX_SIDE}x${MAX_SIDE} limit`);
-}
-
-if (!existsSync(outDir)) {
-  mkdirSync(outDir, { recursive: true });
-}
-
-const temp = join(outDir, `.entry.png.tmp-${process.pid}`);
-writeFileSync(temp, bytes);
-renameSync(temp, target);
-console.log(`Wrote ${target} (${size} bytes, ${width}x${height})`);

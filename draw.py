@@ -1,207 +1,197 @@
 #!/usr/bin/env python3
-"""Draw entry.png for make.fun news-image-20261119, version 3.
+"""Draw entry.png for news-image-20261119 v4: a Swiss typography poster.
 
-Design v3 is a night desk: a dark charcoal-navy page, a glowing amber
-date, and a vertical timeline with six numbered nodes. Each story gets
-a short deck and a small drawn panel on the right carrying its key
-figure. Deliberately unlike v1 (dark-green storyboard cards) and v2
-(ivory broadsheet with a serif masthead): no cards, no paper, no
-serif masthead -- a single dark timeline, one column of stories.
-All six stories of Thursday 19 November 2026 are in it, with the date
-named twice. Deterministic: same bytes every run.
+White page, giant black type, red rules and numbers, pure typography -
+no pictograms, no illustrations. 1024x1024, PIL + Liberation Sans
+(DejaVu Sans fallback).
 """
+
 from PIL import Image, ImageDraw, ImageFont
 
-W, H = 1024, 1024
-LEFT = 56
-RIGHT = 968
+W = H = 1024
+MARGIN = 40
+CW = W - 2 * MARGIN  # 944
 
-NIGHT = (13, 18, 28)       # deep navy-charcoal page
-PANEL = (22, 30, 46)       # slightly lighter panel
-PANEL_EDGE = (52, 64, 88)
-AMBER = (255, 176, 32)     # glowing date, numbers, spine nodes
-PINK = (255, 92, 138)      # GTA VI neon accent
-CYAN = (90, 200, 220)      # secondary accent
-WHITE = (240, 242, 245)
-GREY = (168, 178, 192)     # deck text
-DIM = (110, 122, 142)      # footer text
-SPINE = (60, 72, 92)
-RED = (255, 80, 80)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (214, 0, 28)
+GREY = (110, 110, 110)
 
-FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
-SANS_B = lambda s: ImageFont.truetype(FONT_DIR + "DejaVuSans-Bold.ttf", s)
-SANS = lambda s: ImageFont.truetype(FONT_DIR + "DejaVuSans.ttf", s)
-
-img = Image.new("RGB", (W, H), NIGHT)
-d = ImageDraw.Draw(img)
+SANS = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+SANS_BOLD = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+FALLBACK = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FALLBACK_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
-def put(xy, s, font, fill):
-    d.text(xy, s, font=font, fill=fill)
+def font(path, size):
+    try:
+        return ImageFont.truetype(path, size)
+    except OSError:
+        alt = FALLBACK_BOLD if "Bold" in path else FALLBACK
+        return ImageFont.truetype(alt, size)
 
 
-def flow(s, font, max_w):
-    """Greedy word wrap; returns a list of lines."""
-    words, lines, cur = s.split(), [], ""
-    for w in words:
-        trial = (cur + " " + w).strip()
-        if d.textlength(trial, font=font) <= max_w:
-            cur = trial
-        else:
-            if cur:
-                lines.append(cur)
-            cur = w
-    if cur:
-        lines.append(cur)
+def bold(size):
+    return font(SANS_BOLD, size)
+
+
+def regular(size):
+    return font(SANS, size)
+
+
+def wrap(draw, text, fnt, width):
+    """Greedy word wrap; returns list of lines that fit width."""
+    lines = []
+    for chunk in text.split("\n"):
+        words = chunk.split()
+        line = ""
+        for word in words:
+            trial = (line + " " + word).strip()
+            if draw.textlength(trial, font=fnt) <= width:
+                line = trial
+            else:
+                if line:
+                    lines.append(line)
+                line = word
+        if line:
+            lines.append(line)
     return lines
 
 
-def block(x, y, s, font, max_w, leading, fill, limit=None):
-    """Draw a wrapped paragraph; return the y after its last line."""
-    lines = flow(s, font, max_w)
-    if limit:
-        lines = lines[:limit]
-    for ln in lines:
-        put((x, y), ln, font, fill)
-        y += leading
-    return y
-
-
-# ------------------------------------------------------------------ header
-put((LEFT, 28), "THE DAY IN SIX STORIES  \u00b7  AROUND THE WORLD",
-    SANS_B(14), AMBER)
-put((LEFT, 52), "19 NOVEMBER 2026", SANS_B(62), AMBER)
-put((LEFT, 126), "THURSDAY \u2014 ONE DAY, SIX STORIES THAT MOVED THE WORLD",
-    SANS_B(19), WHITE)
-# a small moon, top right
-d.ellipse([920, 44, 964, 88], fill=(255, 226, 140))
-d.ellipse([936, 56, 950, 70], fill=(232, 196, 96))
-d.ellipse([948, 68, 956, 76], fill=(232, 196, 96))
-d.line([LEFT, 164, RIGHT, 164], fill=AMBER, width=3)
-
-# ------------------------------------------------------------------ timeline spine
-SPINE_X = 72
-d.line([SPINE_X, 200, SPINE_X, 884], fill=SPINE, width=3)
-
 STORIES = [
     ("01", "SUMMIT", "THREE LEADERS, ONE TABLE",
-     "Trump, Xi and Putin sit down in Shenzhen \u2014 the first-ever "
-     "trilateral \u2014 with nuclear arms, Iran and Ukraine on the agenda.",
-     "table", "3 LEADERS"),
+     "Trump, Xi and Putin meet in Shenzhen today \u2014 the first-ever "
+     "trilateral \u2014 with nuclear arms, Iran and Ukraine on the agenda."),
     ("02", "GAMES", "VICE CITY OPENS ITS DOORS",
      "Grand Theft Auto VI launches worldwide at midnight local time, "
-     "13 years after GTA V \u2014 already at 99 on Metacritic.",
-     "neon", "99"),
+     "13 years after GTA V \u2014 already at 99 on Metacritic."),
     ("03", "MARKETS", "ANTHROPIC\u2019S RECORD DEBUT",
      "Shares begin trading on Nasdaq as ANT after an $81.3bn IPO \u2014 "
-     "the largest ever \u2014 valued near $1.5tn.",
-     "chart", "$81.3BN"),
+     "the largest ever \u2014 valued near $1.5tn."),
     ("04", "WEATHER", "AKVAN BEARS DOWN ON INDIA",
      "The cyclone strengthens to a very severe storm; red alerts along "
-     "the Andhra\u2013Odisha coast before landfall on Friday.",
-     "storm", "RED ALERT"),
+     "the Andhra\u2013Odisha coast before landfall on Friday."),
     ("05", "SPACE", "VOYAGER 1, ONE LIGHT-DAY OUT",
      "NASA marks the milestone: the first human-made object 16bn miles "
-     "out \u2014 a radio signal now takes a day to reach it.",
-     "craft", "16BN MI"),
+     "out \u2014 a radio signal now takes a day to reach it."),
     ("06", "EUROPE", "EU\u2019S \u20ac45BN LOAN GOES TO BERLIN",
      "Allies meet in Berlin to discuss the Commission\u2019s \u20ac45bn "
-     "Ukraine loan for 2027, repaid only once Russia pays reparations.",
-     "euro", "\u20ac45BN"),
+     "Ukraine loan for 2027, repaid only once Russia pays reparations."),
 ]
 
-TOP0 = 186
-PITCH = 118
-PANEL_X = 800
-PANEL_W = RIGHT - PANEL_X
+NUMBERS = [
+    ("3", "LEADERS IN SHENZHEN"),
+    ("$81.3BN", "ANTHROPIC IPO"),
+    ("99", "GTA VI \u00b7 METACRITIC"),
+    ("16BN MI", "VOYAGER 1 FROM EARTH"),
+    ("\u20ac45BN", "EU LOAN FOR UKRAINE"),
+]
 
 
-def mini(px, py, kind):
-    """Draw the small illustration inside a story panel."""
-    cx = px + PANEL_W // 2
-    if kind == "table":
-        # three seats around a round table, seen from above
-        d.ellipse([cx - 26, py + 12, cx + 26, py + 44], fill=(38, 52, 78),
-                  outline=AMBER, width=2)
-        for ang, col in ((90, AMBER), (210, CYAN), (330, WHITE)):
-            import math as _m
-            sx = cx + int(40 * _m.cos(_m.radians(ang)))
-            sy = py + 28 + int(26 * _m.sin(_m.radians(ang)))
-            d.ellipse([sx - 8, sy - 8, sx + 8, sy + 8], fill=col)
-    elif kind == "neon":
-        # neon sign frame with a big VI over a dark skyline
-        d.rectangle([px + 14, py + 6, px + PANEL_W - 14, py + 50],
-                    outline=PINK, width=2)
-        put((cx - 26, py + 14), "VI", SANS_B(30), PINK)
-        for bx, bh in ((18, 14), (46, 22), (76, 12), (104, 18), (128, 10)):
-            d.rectangle([px + bx, py + 70 - bh, px + bx + 20, py + 70],
-                        fill=(46, 58, 84))
-    elif kind == "chart":
-        # rising bars and an arrow
-        bars = [(18, 14), (44, 22), (70, 30), (96, 40), (122, 48)]
-        for bx, bh in bars:
-            d.rectangle([px + bx, py + 58 - bh, px + bx + 16, py + 58],
-                        fill=CYAN)
-        d.line([px + 16, py + 40, px + 52, py + 26, px + 88, py + 16,
-                px + 140, py + 6], fill=AMBER, width=3)
-        d.polygon([(px + 140, py + 6), (px + 128, py + 4), (px + 138, py + 16)],
-                  fill=AMBER)
-    elif kind == "storm":
-        # cyclone spiral with a red alert triangle
-        for r in (30, 22, 14):
-            d.arc([cx - r, py + 8, cx + r, py + 8 + 2 * r], 200, 20,
-                  fill=CYAN, width=3)
-        d.polygon([(px + 126, py + 42), (px + 150, py + 42),
-                   (px + 138, py + 16)], fill=RED)
-        put((px + 134, py + 28), "!", SANS_B(14), WHITE)
-    elif kind == "craft":
-        # starfield, dotted path, tiny spacecraft
-        for sx, sy in ((20, 14), (52, 8), (84, 20), (116, 10), (140, 24),
-                       (36, 34), (100, 38)):
-            d.ellipse([px + sx - 2, py + sy - 2, px + sx + 2, py + sy + 2],
-                      fill=WHITE)
-        d.line([px + 16, py + 52, px + 60, py + 40, px + 104, py + 28],
-               fill=GREY, width=2)
-        d.polygon([(px + 128, py + 16), (px + 112, py + 26),
-                   (px + 128, py + 30), (px + 138, py + 22)], fill=AMBER)
-    elif kind == "euro":
-        d.ellipse([cx - 26, py + 6, cx + 26, py + 58], outline=AMBER,
-                  width=2)
-        put((cx - 15, py + 12), "\u20ac", SANS_B(36), AMBER)
+def main():
+    img = Image.new("RGB", (W, H), WHITE)
+    d = ImageDraw.Draw(img)
+
+    # Outer frame.
+    d.rectangle([28, 28, 996, 996], outline=BLACK, width=3)
+
+    # Kicker row.
+    d.rectangle([MARGIN, 44, MARGIN + 14, 58], fill=RED)
+    d.text((MARGIN + 24, 38), "THE WORLD IN ONE DAY", font=bold(26), fill=BLACK)
+    d.text((W - MARGIN, 38), "THURSDAY", font=bold(26), fill=BLACK, anchor="ra")
+
+    # Giant date: black "19 NOVEMBER " + red "2026", fitted to full width.
+    size = 130
+    f_date = bold(size)
+    while d.textlength("19 NOVEMBER 2026", font=f_date) > CW and size > 40:
+        size -= 2
+        f_date = bold(size)
+    y_date = 74
+    d.text((MARGIN, y_date), "19 NOVEMBER 2026", font=f_date, fill=BLACK)
+    pre = d.textlength("19 NOVEMBER ", font=f_date)
+    d.text((MARGIN + pre, y_date), "2026", font=f_date, fill=RED)
+
+    # Thick red rule under the date.
+    d.rectangle([MARGIN, 196, W - MARGIN, 206], fill=RED)
+
+    # Subline.
+    d.text((MARGIN, 216), "SIX STORIES FROM AROUND THE WORLD",
+           font=bold(23), fill=BLACK)
+    d.text((W - MARGIN, 216), "ONE DAY \u00b7 SIX STORIES",
+           font=bold(23), fill=RED, anchor="ra")
+
+    # 2x3 story grid with hairline rules.
+    gx0, gy0 = MARGIN, 248
+    col_w, row_h = CW // 2, 184
+    d.line([(gx0 + col_w, gy0), (gx0 + col_w, gy0 + 3 * row_h)],
+           fill=BLACK, width=2)
+    for r in (1, 2):
+        y = gy0 + r * row_h
+        d.line([(gx0, y), (gx0 + CW, y)], fill=BLACK, width=2)
+
+    for i, (num, tag, head, deck) in enumerate(STORIES):
+        cx = gx0 + (i % 2) * col_w
+        cy = gy0 + (i // 2) * row_h
+        pad = 16
+        # Big red index number, left column of the cell.
+        d.text((cx + pad, cy + 12), num, font=bold(40), fill=RED)
+        tx = cx + pad + 62
+        tw = col_w - pad - 62 - pad
+        # Red category tag, top right of the cell.
+        d.text((cx + col_w - pad, cy + 16), tag, font=bold(15),
+               fill=RED, anchor="ra")
+        # Headline, up to two lines. The first line reserves room for the
+        # red category tag at the top right, so the two never collide.
+        f_head = bold(26)
+        tagw = d.textlength(tag, font=bold(15))
+        lines = wrap(d, head, f_head, tw - tagw - 12)[:2]
+        hy = cy + 14
+        for ln in lines:
+            d.text((tx, hy), ln, font=f_head, fill=BLACK)
+            hy += 31
+        # Thin rule under the headline.
+        d.line([(tx, hy + 4), (tx + tw, hy + 4)], fill=BLACK, width=2)
+        # Deck, up to three lines.
+        f_deck = regular(16)
+        dlines = wrap(d, deck, f_deck, tw)[:3]
+        dy = hy + 14
+        for ln in dlines:
+            d.text((tx, dy), ln, font=f_deck, fill=BLACK)
+            dy += 21
+
+    # "BY THE NUMBERS" label + black strip.
+    ny = gy0 + 3 * row_h + 14
+    d.text((MARGIN, ny), "BY THE NUMBERS", font=bold(18), fill=RED)
+    sy = ny + 26
+    d.rectangle([MARGIN, sy, W - MARGIN, sy + 88], fill=BLACK)
+    col = CW / len(NUMBERS)
+    f_num = bold(34)
+    f_lab = bold(13)
+    for j, (val, lab) in enumerate(NUMBERS):
+        ccx = MARGIN + col * j + col / 2
+        d.text((ccx, sy + 12), val, font=f_num, fill=WHITE, anchor="ma")
+        d.text((ccx, sy + 56), lab, font=f_lab, fill=RED, anchor="ma")
+
+    # "ALSO TODAY" line.
+    ay = sy + 88 + 12
+    d.text((MARGIN, ay), "ALSO TODAY \u2014 ", font=bold(16), fill=RED)
+    off = d.textlength("ALSO TODAY \u2014 ", font=bold(16))
+    d.text((MARGIN + off, ay),
+           "APEC closes in Shenzhen \u00b7 Red alert in 7 Andhra districts "
+           "\u00b7 GTA VI unlocks at midnight ET in the US",
+           font=regular(16), fill=BLACK)
+
+    # Footer: sources, single line.
+    fy = ay + 26
+    d.text((MARGIN, fy),
+           "Sources: Reuters \u00b7 AP \u00b7 Bloomberg \u00b7 NASA \u00b7 "
+           "India Meteorological Department \u00b7 European Commission \u2014 "
+           "All events of Thursday 19 November 2026.",
+           font=regular(13), fill=GREY)
+
+    img.save("entry.png", optimize=True)
+    print("saved entry.png")
 
 
-for i, (num, tag, head, deck, kind, stat) in enumerate(STORIES):
-    y = TOP0 + i * PITCH
-    # node on the spine
-    ny = y + 32
-    d.ellipse([SPINE_X - 11, ny - 11, SPINE_X + 11, ny + 11], fill=AMBER)
-    d.ellipse([SPINE_X - 5, ny - 5, SPINE_X + 5, ny + 5], fill=NIGHT)
-    # big number + tag + headline + deck
-    put((100, y + 2), num, SANS_B(30), AMBER)
-    put((170, y + 4), tag, SANS_B(12), CYAN)
-    put((170, y + 22), head, SANS_B(25), WHITE)
-    block(170, y + 56, deck, SANS(15), PANEL_X - 170 - 18, 20, GREY,
-          limit=2)
-    # right panel: illustration above, key figure below
-    d.rounded_rectangle([PANEL_X, y + 4, RIGHT, y + 110], radius=8,
-                        fill=PANEL, outline=PANEL_EDGE, width=1)
-    mini(PANEL_X, y + 4, kind)
-    sw = d.textlength(stat, font=SANS_B(19))
-    put((PANEL_X + (PANEL_W - sw) / 2, y + 82), stat, SANS_B(19), AMBER)
-    if i < 5:
-        d.line([SPINE_X, y + PITCH - 6, SPINE_X, y + PITCH + 6],
-               fill=SPINE, width=3)
-
-# ------------------------------------------------------------------ footer
-FY = 916
-d.line([LEFT, FY, RIGHT, FY], fill=SPINE, width=1)
-put((LEFT, FY + 12),
-    "Sources: Reuters \u00b7 AP \u00b7 Bloomberg \u00b7 NASA \u00b7 India "
-    "Meteorological Department \u00b7 European Commission",
-    SANS(13), DIM)
-put((LEFT, FY + 34),
-    "All events of Thursday 19 November 2026.",
-    SANS_B(13), GREY)
-
-img.save("entry.png", format="PNG", optimize=True)
-print("saved entry.png", img.size)
+if __name__ == "__main__":
+    main()
